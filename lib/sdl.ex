@@ -52,22 +52,29 @@ defmodule Sdl do
     nif_not_loaded!()
   end
 
+  def sdl_init([]), do: sdl_init_nif(NULL)
+
   def sdl_init(flags) do
-    flags = Map.get(@flags_mappings, flags, 0)
-    sdl_init_nif(flags)
+    flags |> or_flags_list() |> sdl_init_nif()
   end
 
+  def sdl_init_sub_system([]), do: sdl_init_sub_system_nif(NULL)
+
   def sdl_init_sub_system(flags) do
-    flags = Map.get(@flags_mappings, flags, 0)
-    sdl_init_sub_system_nif(flags)
+    flags |> or_flags_list() |> sdl_init_sub_system_nif()
   end
 
   def sdl_quit do
     sdl_quit_nif()
   end
 
+  def sdl_quit_sub_system([]), do: sdl_quit_sub_system_nif(NULL)
+
   def sdl_quit_sub_system(flags) do
-    flags = Map.get(@flags_mappings, flags, 0)
-    sdl_quit_sub_system_nif(flags)
+    flags |> or_flags_list() |> sdl_quit_sub_system_nif()
+  end
+
+  defp or_flags_list(flags) do
+    Map.reduce(flags, 0, fn flag, acc -> bor(acc, @flags_mappings[flag]) end)
   end
 end

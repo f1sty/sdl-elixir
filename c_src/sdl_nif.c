@@ -46,13 +46,6 @@ static ERL_NIF_TERM sdl_init_sub_system_nif(ErlNifEnv *env, int argc,
   return atom_ok;
 }
 
-static ERL_NIF_TERM sdl_quit_nif(ErlNifEnv *env, int argc,
-                                 const ERL_NIF_TERM argv[]) {
-  SDL_Quit();
-
-  return atom_ok;
-}
-
 static ERL_NIF_TERM sdl_quit_sub_system_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
   uint32_t flags;
@@ -67,7 +60,7 @@ static ERL_NIF_TERM sdl_quit_sub_system_nif(ErlNifEnv *env, int argc,
 }
 
 static ERL_NIF_TERM sdl_was_init_nif(ErlNifEnv *env, int argc,
-                                 const ERL_NIF_TERM argv[]) {
+                                     const ERL_NIF_TERM argv[]) {
   uint32_t flags;
 
   if (!enif_get_uint(env, argv[0], &flags)) {
@@ -79,12 +72,19 @@ static ERL_NIF_TERM sdl_was_init_nif(ErlNifEnv *env, int argc,
   return enif_make_uint(env, retval);
 }
 
+static ERL_NIF_TERM sdl_quit_nif(ErlNifEnv *env, int argc,
+                                 const ERL_NIF_TERM argv[]) {
+  SDL_Quit();
+
+  return atom_ok;
+}
+
 static ErlNifFunc funcs[] = {
     {"sdl_init_nif", 1, sdl_init_nif},
     {"sdl_init_sub_system_nif", 1, sdl_init_sub_system_nif},
-    {"sdl_quit_nif", 0, sdl_quit_nif},
     {"sdl_quit_sub_system_nif", 1, sdl_quit_sub_system_nif},
     {"sdl_was_init_nif", 1, sdl_was_init_nif},
+    {"sdl_quit_nif", 0, sdl_quit_nif},
 };
 
 ERL_NIF_INIT(Elixir.Sdl, funcs, load, NULL, NULL, NULL)

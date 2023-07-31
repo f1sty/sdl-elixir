@@ -404,6 +404,7 @@ defmodule Sdl do
   defmodule Colour do
     defstruct r: 0, g: 0, b: 0, a: 0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -412,6 +413,7 @@ defmodule Sdl do
   defmodule Color do
     defstruct r: 0, g: 0, b: 0, a: 0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -419,22 +421,24 @@ defmodule Sdl do
 
   defmodule Palette do
     defstruct ncolors: 0,
-              colors: [Color.new()],
+              colors: nil,
               version: 0,
               refcount: 0,
               ref: nil
 
-    def new(config \\ %{}) do
+    def new(nil), do: nil
+    def new(%{colors: colors_config} = config) do
+      config = %{config | colors: Color.new(colors_config)}
       Map.merge(%__MODULE__{}, config)
     end
   end
 
   defmodule PixelFormat do
     defstruct format: @pixel_format_enum[:sdl_pixelformat_unknown],
-              palette: Palette.new(),
+              palette: nil,
               bits_per_pixel: 0,
               bytes_per_pixel: 0,
-              padding: [0, 0],
+              padding: [],
               r_mask: 0,
               g_mask: 0,
               b_mask: 0,
@@ -451,7 +455,9 @@ defmodule Sdl do
               next: nil,
               ref: nil
 
-    def new(config \\ %{}) do
+    def new(nil), do: nil
+    def new(%{palette: palette_config} = config) do
+      config = %{config | palette: Palette.new(palette_config)}
       Map.merge(%__MODULE__{}, config)
     end
   end
@@ -459,6 +465,7 @@ defmodule Sdl do
   defmodule Rect do
     defstruct x: 0, y: 0, w: 0, h: 0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -467,6 +474,7 @@ defmodule Sdl do
   defmodule FRect do
     defstruct x: 0.0, y: 0.0, w: 0.0, h: 0.0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -475,6 +483,7 @@ defmodule Sdl do
   defmodule Point do
     defstruct x: 0, y: 0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -483,6 +492,7 @@ defmodule Sdl do
   defmodule FPoint do
     defstruct x: 0.0, y: 0.0, ref: nil
 
+    def new(nil), do: nil
     def new(config \\ %{}) do
       Map.merge(%__MODULE__{}, config)
     end
@@ -502,7 +512,7 @@ defmodule Sdl do
     }
 
     defstruct flags: 0,
-              format: PixelFormat.new(),
+              format: nil,
               w: 0,
               h: 0,
               pitch: 0,
@@ -510,12 +520,19 @@ defmodule Sdl do
               userdata: nil,
               locked: false,
               list_blitmap: nil,
-              clip_rect: Rect.new(),
+              clip_rect: nil,
               map: nil,
               refcount: 0,
               ref: nil
 
-    def new(config \\ %{}) do
+    def new(nil), do: nil
+    def new(%{clip_rect: clip_rect_config, format: pixel_format_config} = config) do
+      config = %{
+        config
+        | clip_rect: Rect.new(clip_rect_config),
+          format: PixelFormat.new(pixel_format_config)
+      }
+
       Map.merge(%__MODULE__{}, config)
     end
   end
@@ -539,7 +556,16 @@ defmodule Sdl do
   def sdl_quit, do: sdl_quit_nif()
 
   # `SDL2/SDL_surface.h` functions
-  def sdl_create_rgb_surface_nif(_flags, _width, _height, _depth, _r_mask, _g_mask, _b_mask, _a_mask) do
+  def sdl_create_rgb_surface_nif(
+        _flags,
+        _width,
+        _height,
+        _depth,
+        _r_mask,
+        _g_mask,
+        _b_mask,
+        _a_mask
+      ) do
     nif_not_loaded!()
   end
 
@@ -549,10 +575,11 @@ defmodule Sdl do
 
   def sdl_create_rgb_surface(flags, width, height, depth, r_mask, g_mask, b_mask, a_mask) do
     sdl_create_rgb_surface_nif(flags, width, height, depth, r_mask, g_mask, b_mask, a_mask)
+    |> Surface.new()
   end
 
   def sdl_create_rgb_surface_with_format(flags, width, height, depth, format) do
     format = Map.get(@pixel_format_enum, format, 0)
-    sdl_create_rgb_surface_with_format_nif(flags, width, height, depth, format)
+    sdl_create_rgb_surface_with_format_nif(flags, width, height, depth, format) |> Surface.new()
   end
 end

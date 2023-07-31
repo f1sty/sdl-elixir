@@ -5,6 +5,7 @@
 # TODO
 
 - [x] add `make` capability
-- [ ] add basic `SDL2` functions implementation
+- [x] add basic `SDL2` functions implementation
 - [ ] add basic `GenServer` for holding state
 - [ ] add `MVP` example
+- [ ] extract pointers as structs/maps in retval of nifs

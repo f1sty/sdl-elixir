@@ -415,10 +415,6 @@ sdl_create_rgb_surface_with_format_nif(ErlNifEnv *env, int argc,
   SDL_Surface *ref =
       SDL_CreateRGBSurfaceWithFormat(flags, width, height, depth, format);
 
-  /* ERL_NIF_TERM keys[] = {atom_ok}; */
-  /* ERL_NIF_TERM values[] = {enif_make_uint64(env, ref->format->palette)}; */
-  /* ERL_NIF_TERM retval = enif_make_new_map(env); */
-  /* enif_make_map_from_arrays(env, keys, values, 1, &retval); */
   return sdl_surface_map(env, ref);
 }
 

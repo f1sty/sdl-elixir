@@ -5,36 +5,7 @@ defmodule Sdl do
   @on_load :init_nifs
   def init_nifs, do: :erlang.load_nif(~c"c_src/sdl_nif", 0)
 
-  import Bitwise
-
-  @flags_mappings %{
-    sdl_init_timer: 0x00000001,
-    sdl_init_audio: 0x00000010,
-    sdl_init_video: 0x00000020,
-    sdl_init_joystick: 0x00000200,
-    sdl_init_haptic: 0x00001000,
-    sdl_init_gamecontroller: 0x00002000,
-    sdl_init_events: 0x00004000,
-    sdl_init_sensor: 0x00008000,
-    sdl_init_noparachute: 0x00100000,
-    sdl_init_everything:
-      0x00000001 |||
-        0x00000010 |||
-        0x00000020 |||
-        0x00004000 |||
-        0x00000200 |||
-        0x00001000 |||
-        0x00002000 |||
-        0x00008000
-  }
-
-  defmodule NifNotLoaded do
-    defexception [:message]
-  end
-
-  def nif_not_loaded! do
-    raise NifNotLoaded, message: "could not load c_src/sdl_nif.so"
-  end
+  import Sdl.Helpers
 
   def sdl_init_nif(_flags) do
     nif_not_loaded!()
@@ -52,29 +23,27 @@ defmodule Sdl do
     nif_not_loaded!()
   end
 
-  def sdl_init([]), do: sdl_init_nif(NULL)
-
-  def sdl_init(flags) do
-    flags |> or_flags_list() |> sdl_init_nif()
+  def sdl_was_init_nif(_flags) do
+    nif_not_loaded!()
   end
 
-  def sdl_init_sub_system([]), do: sdl_init_sub_system_nif(NULL)
+  def sdl_init(flags) do
+    flags |> from_list() |> sdl_init_nif()
+  end
 
   def sdl_init_sub_system(flags) do
-    flags |> or_flags_list() |> sdl_init_sub_system_nif()
+    flags |> from_list() |> sdl_init_sub_system_nif()
   end
 
   def sdl_quit do
     sdl_quit_nif()
   end
 
-  def sdl_quit_sub_system([]), do: sdl_quit_sub_system_nif(NULL)
-
   def sdl_quit_sub_system(flags) do
-    flags |> or_flags_list() |> sdl_quit_sub_system_nif()
+    flags |> from_list() |> sdl_quit_sub_system_nif()
   end
 
-  defp or_flags_list(flags) do
-    Map.reduce(flags, 0, fn flag, acc -> bor(acc, @flags_mappings[flag]) end)
+  def sdl_was_init_nif(flags) do
+    flags |> from_list() |> sdl_was_init_nif()
   end
 end

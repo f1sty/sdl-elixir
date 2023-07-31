@@ -25,7 +25,7 @@ defmodule Sdl.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "1.7.7", runtime: false},
+      {:elixir_make, "0.7.7", runtime: false},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end

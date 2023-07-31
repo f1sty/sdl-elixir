@@ -4,7 +4,7 @@
 
 # TODO
 
-- [ ] add `make` capability
+- [x] add `make` capability
 - [ ] add basic `SDL2` functions implementation
 - [ ] add basic `GenServer` for holding state
 - [ ] add `MVP` example

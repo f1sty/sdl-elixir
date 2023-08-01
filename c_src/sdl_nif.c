@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_blendmode.h>
 #include <SDL2/SDL_error.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_video.h>
@@ -927,6 +929,167 @@ static ERL_NIF_TERM sdl_create_window_nif(ErlNifEnv *env, int argc,
   return enif_make_tuple2(env, atom_ok, retval);
 }
 
+static ERL_NIF_TERM sdl_get_window_surface_nif(ErlNifEnv *env, int argc,
+                                               const ERL_NIF_TERM argv[]) {
+  SDL_Window *window;
+
+  if (!enif_get_uint64(env, argv[0], &window)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Surface *ref = SDL_GetWindowSurface(window);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  return enif_make_tuple2(env, atom_ok, sdl_surface_map(env, ref));
+}
+
+static ERL_NIF_TERM sdl_create_renderer_nif(ErlNifEnv *env, int argc,
+                                            const ERL_NIF_TERM argv[]) {
+  SDL_Window *window;
+  int index;
+  uint32_t flags;
+
+  if (!enif_get_uint64(env, argv[0], &window)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[1], &index)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[2], &flags)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Renderer *ref = SDL_CreateRenderer(window, index, flags);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM keys[] = {atom_ref};
+  ERL_NIF_TERM values[] = {enif_make_uint64(env, (uint64_t)ref)};
+  ERL_NIF_TERM retval = enif_make_new_map(env);
+  enif_make_map_from_arrays(env, keys, values, LEN(values), &retval);
+
+  return enif_make_tuple2(env, atom_ok, retval);
+}
+
+static ERL_NIF_TERM
+sdl_create_texture_from_surface_nif(ErlNifEnv *env, int argc,
+                                    const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+  SDL_Surface *surface;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[1], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Texture *ref = SDL_CreateTextureFromSurface(renderer, surface);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM keys[] = {atom_ref};
+  ERL_NIF_TERM values[] = {enif_make_uint64(env, (uint64_t)ref)};
+  ERL_NIF_TERM retval = enif_make_new_map(env);
+  enif_make_map_from_arrays(env, keys, values, LEN(values), &retval);
+
+  return enif_make_tuple2(env, atom_ok, retval);
+}
+
+static ERL_NIF_TERM img_load_nif(ErlNifEnv *env, int argc,
+                                 const ERL_NIF_TERM argv[]) {
+  char file[256];
+
+  if (!enif_get_string(env, argv[0], file, 256, ERL_NIF_UTF8)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Surface *ref = IMG_Load(file);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  return enif_make_tuple2(env, atom_ok, sdl_surface_map(env, ref));
+}
+
+static ERL_NIF_TERM sdl_query_texture_nif(ErlNifEnv *env, int argc,
+                                          const ERL_NIF_TERM argv[]) {
+  SDL_Texture *texture;
+  int w, h, access;
+  uint32_t format;
+
+  if (!enif_get_uint64(env, argv[0], &texture)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_QueryTexture(texture, &format, &access, &w, &h) < 0)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM format_term = enif_make_uint(env, format);
+  ERL_NIF_TERM access_term = enif_make_int(env, access);
+  ERL_NIF_TERM w_term = enif_make_int(env, w);
+  ERL_NIF_TERM h_term = enif_make_int(env, h);
+
+  return enif_make_tuple4(env, format_term, access_term, w_term, h_term);
+}
+
+static ERL_NIF_TERM sdl_render_clear_nif(ErlNifEnv *env, int argc,
+                                         const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_RenderClear(renderer) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_render_copy_nif(ErlNifEnv *env, int argc,
+                                        const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+  SDL_Texture *texture;
+  SDL_Rect *srcrect;
+  SDL_Rect *dstrect;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[1], &texture)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[2], &srcrect)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[3], &dstrect)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_RenderCopy(renderer, texture, srcrect, dstrect) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_render_present_nif(ErlNifEnv *env, int argc,
+                                           const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_RenderPresent(renderer);
+
+  return atom_ok;
+}
+
 static ErlNifFunc funcs[] = {
     {"sdl_init_nif", 1, sdl_init_nif},
     {"sdl_init_sub_system_nif", 1, sdl_init_sub_system_nif},
@@ -968,6 +1131,19 @@ static ErlNifFunc funcs[] = {
     {"sdl_get_video_driver_nif", 1, sdl_get_video_driver_nif},
     {"sdl_video_init_nif", 1, sdl_video_init_nif},
     {"sdl_create_window_nif", 6, sdl_create_window_nif},
+    {"sdl_get_window_surface_nif", 1, sdl_get_window_surface_nif},
+    // SDL_render.h section
+    {"sdl_create_renderer_nif", 3, sdl_create_renderer_nif},
+    {"sdl_create_texture_from_surface_nif", 2,
+     sdl_create_texture_from_surface_nif},
+    // SDL_image.h section
+    {"img_load_nif", 1, img_load_nif},
+    // SDL_render.h section
+    {"sdl_query_texture_nif", 1,
+     sdl_query_texture_nif}, // use 1 arg instread of 5
+    {"sdl_render_clear_nif", 1, sdl_render_clear_nif},
+    {"sdl_render_copy_nif", 4, sdl_render_copy_nif},
+    {"sdl_render_present_nif", 1, sdl_render_present_nif},
 };
 
 ERL_NIF_INIT(Elixir.Sdl, funcs, load, NULL, NULL, NULL)

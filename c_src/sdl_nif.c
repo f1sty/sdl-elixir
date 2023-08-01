@@ -1,6 +1,9 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_blendmode.h>
 #include <SDL2/SDL_error.h>
+#include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_surface.h>
+#include <SDL2/SDL_video.h>
 #include <erl_nif.h>
 #include <stdint.h>
 
@@ -556,6 +559,374 @@ static ERL_NIF_TERM sdl_unlock_surface_nif(ErlNifEnv *env, int argc,
   return atom_ok;
 }
 
+static ERL_NIF_TERM sdl_load_bmp_rw_nif(ErlNifEnv *env, int argc,
+                                        const ERL_NIF_TERM argv[]) {
+  SDL_RWops *src;
+  int freesrc;
+
+  if (!enif_get_uint64(env, argv[0], &src)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[1], &freesrc)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Surface *ref = SDL_LoadBMP_RW(src, freesrc);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  return enif_make_tuple2(env, atom_ok, sdl_surface_map(env, ref));
+}
+
+static ERL_NIF_TERM sdl_load_bmp_nif(ErlNifEnv *env, int argc,
+                                     const ERL_NIF_TERM argv[]) {
+  char file[256];
+
+  if (!enif_get_string(env, argv[0], file, 256, ERL_NIF_UTF8)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Surface *ref = SDL_LoadBMP_RW(SDL_RWFromFile(file, "rb"), 1);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  return enif_make_tuple2(env, atom_ok, sdl_surface_map(env, ref));
+}
+
+static ERL_NIF_TERM sdl_save_bmp_rw_nif(ErlNifEnv *env, int argc,
+                                        const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  SDL_RWops *dst;
+  int freesrc;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[1], &dst)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[2], &freesrc)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SaveBMP_RW(surface, dst, freesrc) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_save_bmp_nif(ErlNifEnv *env, int argc,
+                                     const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  char file[256];
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_string(env, argv[0], file, 256, ERL_NIF_UTF8)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SaveBMP_RW(surface, SDL_RWFromFile(file, "wb"), 1) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_set_surface_rle_nif(ErlNifEnv *env, int argc,
+                                            const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  int flag;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[1], &flag)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetSurfaceRLE(surface, flag) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_has_surface_rle_nif(ErlNifEnv *env, int argc,
+                                            const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_HasSurfaceRLE(surface) == SDL_TRUE) {
+    return atom_true;
+  }
+
+  return atom_false;
+}
+
+static ERL_NIF_TERM sdl_set_color_key_nif(ErlNifEnv *env, int argc,
+                                          const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  int flag;
+  uint32_t key;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[1], &flag)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[2], &key)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetColorKey(surface, flag, key) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_has_color_key_nif(ErlNifEnv *env, int argc,
+                                          const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_HasColorKey(surface) == SDL_TRUE) {
+    return atom_true;
+  }
+
+  return atom_false;
+}
+
+static ERL_NIF_TERM sdl_get_color_key_nif(ErlNifEnv *env, int argc,
+                                          const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  uint32_t key;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_GetColorKey(surface, &key) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return enif_make_tuple2(env, atom_ok, enif_make_uint(env, key));
+}
+
+// FIXME: segfaulting
+static ERL_NIF_TERM sdl_set_surface_color_mod_nif(ErlNifEnv *env, int argc,
+                                                  const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  uint8_t r, g, b;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[1], &r)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[2], &g)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[3], &b)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetSurfaceColorMod(surface, r, g, b) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_get_surface_color_mod_nif(ErlNifEnv *env, int argc,
+                                                  const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  uint8_t r, g, b;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_GetSurfaceColorMod(surface, &r, &g, &b) < 0)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM r_term = enif_make_uint(env, r);
+  ERL_NIF_TERM g_term = enif_make_uint(env, g);
+  ERL_NIF_TERM b_term = enif_make_uint(env, b);
+
+  return enif_make_tuple2(env, atom_ok,
+                          enif_make_tuple3(env, r_term, g_term, b_term));
+}
+
+static ERL_NIF_TERM sdl_set_surface_alpha_mod_nif(ErlNifEnv *env, int argc,
+                                                  const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  uint8_t alpha;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[1], &alpha)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetSurfaceAlphaMod(surface, alpha) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_get_surface_alpha_mod_nif(ErlNifEnv *env, int argc,
+                                                  const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  uint8_t alpha;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_GetSurfaceAlphaMod(surface, &alpha) < 0)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM alpha_term = enif_make_uint(env, alpha);
+
+  return enif_make_tuple2(env, atom_ok, alpha_term);
+}
+
+static ERL_NIF_TERM sdl_set_surface_blend_mode_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  SDL_BlendMode blend_mode;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[1], &blend_mode)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetSurfaceBlendMode(surface, blend_mode) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_get_surface_blend_mode_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]) {
+  SDL_Surface *surface;
+  SDL_BlendMode blend_mode;
+
+  if (!enif_get_uint64(env, argv[0], &surface)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_GetSurfaceAlphaMod(surface, &blend_mode) < 0)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM blend_mode_term = enif_make_uint64(env, blend_mode);
+
+  return enif_make_tuple2(env, atom_ok, blend_mode_term);
+}
+
+static ERL_NIF_TERM sdl_upper_blit_nif(ErlNifEnv *env, int argc,
+                                       const ERL_NIF_TERM argv[]) {
+  SDL_Surface *src, *dst;
+  SDL_Rect *srcrect, *dstrect;
+
+  if (!enif_get_uint64(env, argv[0], &src)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[1], &srcrect)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[2], &dst)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint64(env, argv[3], &dstrect)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_UpperBlit(src, srcrect, dst, dstrect) != 0) {
+    return SDL_ERROR_TUPLE;
+  }
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_get_video_driver_nif(ErlNifEnv *env, int argc,
+                                             const ERL_NIF_TERM argv[]) {
+  int index;
+
+  if (!enif_get_int(env, argv[0], &index)) {
+    return enif_make_badarg(env);
+  }
+
+  char *retval = SDL_GetVideoDriver(index);
+
+  return enif_make_string(env, retval, ERL_NIF_UTF8);
+}
+
+static ERL_NIF_TERM sdl_video_init_nif(ErlNifEnv *env, int argc,
+                                       const ERL_NIF_TERM argv[]) {
+  char driver_name[256];
+
+  if (!enif_get_string(env, argv[0], driver_name, 256, ERL_NIF_UTF8)) {
+    return enif_make_badarg(env);
+  }
+
+  int retval = SDL_VideoInit(driver_name);
+
+  if (retval != 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_create_window_nif(ErlNifEnv *env, int argc,
+                                          const ERL_NIF_TERM argv[]) {
+  char title[256];
+  int x, y, w, h;
+  uint32_t flags;
+
+  if (!enif_get_string(env, argv[0], title, 256, ERL_NIF_UTF8)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[1], &x)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[2], &y)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[3], &w)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_int(env, argv[4], &h)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[5], &flags)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Window *ref = SDL_CreateWindow(title, x, y, w, h, flags);
+
+  if (ref == NULL)
+    return SDL_ERROR_TUPLE;
+
+  ERL_NIF_TERM keys[] = {atom_ref};
+  ERL_NIF_TERM values[] = {enif_make_uint64(env, (uint64_t)ref)};
+  ERL_NIF_TERM retval = enif_make_new_map(env);
+  enif_make_map_from_arrays(env, keys, values, LEN(values), &retval);
+
+  return enif_make_tuple2(env, atom_ok, retval);
+}
+
 static ErlNifFunc funcs[] = {
     {"sdl_init_nif", 1, sdl_init_nif},
     {"sdl_init_sub_system_nif", 1, sdl_init_sub_system_nif},
@@ -572,6 +943,31 @@ static ErlNifFunc funcs[] = {
     {"sdl_set_surface_palette_nif", 2, sdl_set_surface_palette_nif},
     {"sdl_lock_surface_nif", 1, sdl_lock_surface_nif},
     {"sdl_unlock_surface_nif", 1, sdl_unlock_surface_nif},
+    {"sdl_load_bmp_rw_nif", 2, sdl_load_bmp_rw_nif},
+    {"sdl_load_bmp_nif", 1, sdl_load_bmp_nif},
+    {"sdl_save_bmp_rw_nif", 3, sdl_save_bmp_rw_nif},
+    {"sdl_save_bmp_nif", 2, sdl_save_bmp_nif},
+    {"sdl_set_surface_rle_nif", 2, sdl_set_surface_rle_nif},
+    {"sdl_has_surface_rle_nif", 1, sdl_has_surface_rle_nif},
+    {"sdl_set_color_key_nif", 3, sdl_set_color_key_nif},
+    {"sdl_has_color_key_nif", 1, sdl_has_color_key_nif},
+    {"sdl_get_color_key_nif", 1,
+     sdl_get_color_key_nif}, // takes 1 arg instead of 2
+    {"sdl_set_surface_color_mod_nif", 4, sdl_set_surface_color_mod_nif},
+    {"sdl_get_surface_color_mod_nif", 1,
+     sdl_get_surface_color_mod_nif}, // takes 1 arg instead of 4
+    {"sdl_set_surface_alpha_mod_nif", 2, sdl_set_surface_alpha_mod_nif},
+    {"sdl_get_surface_alpha_mod_nif", 1,
+     sdl_get_surface_alpha_mod_nif}, // takes 1 arg instead of 2
+    {"sdl_set_surface_blend_mode_nif", 2, sdl_set_surface_blend_mode_nif},
+    {"sdl_get_surface_blend_mode_nif", 1,
+     sdl_get_surface_blend_mode_nif}, // takes 1 arg instead of 2
+    /* {"sdl_set_clip_rect_nif", 2, sdl_set_clip_rect_nif}, */
+    {"sdl_upper_blit_nif", 4, sdl_upper_blit_nif},
+    // SDL_video.h section
+    {"sdl_get_video_driver_nif", 1, sdl_get_video_driver_nif},
+    {"sdl_video_init_nif", 1, sdl_video_init_nif},
+    {"sdl_create_window_nif", 6, sdl_create_window_nif},
 };
 
 ERL_NIF_INIT(Elixir.Sdl, funcs, load, NULL, NULL, NULL)

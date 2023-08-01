@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_blendmode.h>
 #include <SDL2/SDL_error.h>
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_rwops.h>
@@ -8,6 +9,7 @@
 #include <SDL2/SDL_video.h>
 #include <erl_nif.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define SDL_ERROR_TUPLE                                                        \
   enif_make_tuple2(env, atom_error,                                            \
@@ -61,12 +63,58 @@ ERL_NIF_TERM atom_r;
 ERL_NIF_TERM atom_g;
 ERL_NIF_TERM atom_b;
 ERL_NIF_TERM atom_a;
+ERL_NIF_TERM atom_type;
+ERL_NIF_TERM atom_common;
+ERL_NIF_TERM atom_display;
+ERL_NIF_TERM atom_window;
+ERL_NIF_TERM atom_key;
+ERL_NIF_TERM atom_edit;
+ERL_NIF_TERM atom_edit_ext;
+ERL_NIF_TERM atom_text;
+ERL_NIF_TERM atom_motion;
+ERL_NIF_TERM atom_button;
+ERL_NIF_TERM atom_wheel;
+ERL_NIF_TERM atom_jaxis;
+ERL_NIF_TERM atom_jball;
+ERL_NIF_TERM atom_jhat;
+ERL_NIF_TERM atom_jbutton;
+ERL_NIF_TERM atom_jdevice;
+ERL_NIF_TERM atom_jbattery;
+ERL_NIF_TERM atom_caxis;
+ERL_NIF_TERM atom_cbutton;
+ERL_NIF_TERM atom_cdevice;
+ERL_NIF_TERM atom_ctouchpad;
+ERL_NIF_TERM atom_csensor;
+ERL_NIF_TERM atom_adevice;
+ERL_NIF_TERM atom_sensor;
+ERL_NIF_TERM atom_quit;
+ERL_NIF_TERM atom_user;
+ERL_NIF_TERM atom_syswm;
+ERL_NIF_TERM atom_tfinger;
+ERL_NIF_TERM atom_mgesture;
+ERL_NIF_TERM atom_dgesture;
+ERL_NIF_TERM atom_drop;
+ERL_NIF_TERM atom_timestamp;
+ERL_NIF_TERM atom_window_id;
+ERL_NIF_TERM atom_state;
+ERL_NIF_TERM atom_repeat;
+ERL_NIF_TERM atom_padding2;
+ERL_NIF_TERM atom_padding3;
+ERL_NIF_TERM atom_keysym;
+ERL_NIF_TERM atom_scancode;
+ERL_NIF_TERM atom_sym;
+ERL_NIF_TERM atom_mod;
+ERL_NIF_TERM atom_unused;
 
 ERL_NIF_TERM sdl_surface_keys[13];
 ERL_NIF_TERM sdl_rect_keys[5];
 ERL_NIF_TERM sdl_pixel_format_keys[20];
 ERL_NIF_TERM sdl_palette_keys[5];
 ERL_NIF_TERM sdl_color_keys[5];
+ERL_NIF_TERM sdl_event_keys[31];
+ERL_NIF_TERM sdl_keyboard_event_keys[8];
+ErlNifResourceType *event_t;
+SDL_Event *event;
 
 static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
   ERL_NIF_TERM val_format = atom_nil;
@@ -94,7 +142,6 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
             val_format_palette_colors_r, val_format_palette_colors_g,
             val_format_palette_colors_b, val_format_palette_colors_a,
             val_format_palette_colors_ref};
-        /* ERL_NIF_TERM val_format_palette_colors = enif_make_new_map(env); */
         val_format_palette_colors = enif_make_new_map(env);
         enif_make_map_from_arrays(
             env, sdl_color_keys, val_format_palette_colors_values,
@@ -110,7 +157,6 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
           val_format_palette_ncolors, val_format_palette_colors,
           val_format_palette_version, val_format_palette_refcount,
           val_format_palette_ref};
-      /* ERL_NIF_TERM val_format_palette = enif_make_new_map(env); */
       val_format_palette = enif_make_new_map(env);
       enif_make_map_from_arrays(
           env, sdl_palette_keys, val_format_palette_values,
@@ -155,7 +201,6 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
         val_format_g_shift,        val_format_b_shift,
         val_format_a_shift,        val_format_refcount,
         val_format_next,           val_format_ref};
-    /* ERL_NIF_TERM val_format = enif_make_new_map(env); */
     val_format = enif_make_new_map(env);
     enif_make_map_from_arrays(env, sdl_pixel_format_keys, val_format_values,
                               LEN(val_format_values), &val_format);
@@ -179,7 +224,6 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
     ERL_NIF_TERM val_clip_rect_values[] = {val_clip_rect_x, val_clip_rect_y,
                                            val_clip_rect_w, val_clip_rect_h,
                                            val_clip_rect_ref};
-    /* ERL_NIF_TERM val_clip_rect = enif_make_new_map(env); */
     val_clip_rect = enif_make_new_map(env);
     enif_make_map_from_arrays(env, sdl_rect_keys, val_clip_rect_values,
                               LEN(val_clip_rect_values), &val_clip_rect);
@@ -196,6 +240,94 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
   ERL_NIF_TERM retval = enif_make_new_map(env);
   enif_make_map_from_arrays(env, sdl_surface_keys, values, LEN(values),
                             &retval);
+
+  return retval;
+}
+
+static ERL_NIF_TERM sdl_event_map(ErlNifEnv *env) {
+  ERL_NIF_TERM val_type = enif_make_uint(env, event->type);
+  ERL_NIF_TERM val_common = atom_nil;
+  ERL_NIF_TERM val_display = atom_nil;
+  ERL_NIF_TERM val_window = atom_nil;
+  ERL_NIF_TERM val_key = atom_nil;
+  if (event->type == SDL_KEYDOWN) {
+    ERL_NIF_TERM val_key_type = enif_make_uint(env, event->key.type);
+    ERL_NIF_TERM val_key_timestamp = enif_make_uint(env, event->key.timestamp);
+    ERL_NIF_TERM val_key_window_id = enif_make_uint(env, event->key.windowID);
+    ERL_NIF_TERM val_key_state = enif_make_uint(env, event->key.state);
+    ERL_NIF_TERM val_key_repeat = enif_make_uint(env, event->key.repeat);
+    ERL_NIF_TERM val_key_padding2 = enif_make_uint(env, event->key.padding2);
+    ERL_NIF_TERM val_key_padding3 = enif_make_uint(env, event->key.padding3);
+    ERL_NIF_TERM val_key_keysym_scancode =
+        enif_make_uint(env, event->key.keysym.scancode);
+    ERL_NIF_TERM val_key_keysym_sym =
+        enif_make_uint(env, event->key.keysym.sym);
+    ERL_NIF_TERM val_key_keysym_mod =
+        enif_make_uint(env, event->key.keysym.mod);
+    ERL_NIF_TERM val_key_keysym_unused =
+        enif_make_uint(env, event->key.keysym.unused);
+    ERL_NIF_TERM val_key_keysym_keys[] = {atom_scancode, atom_sym, atom_mod,
+                                          atom_unused};
+    ERL_NIF_TERM val_key_keysym_values[] = {
+        val_key_keysym_scancode, val_key_keysym_sym, val_key_keysym_mod,
+        val_key_keysym_unused};
+    ERL_NIF_TERM val_key_keysym = enif_make_new_map(env);
+    enif_make_map_from_arrays(env, val_key_keysym_keys, val_key_keysym_values,
+                              LEN(val_key_keysym_values), &val_key_keysym);
+
+    ERL_NIF_TERM val_key_values[] = {
+        val_key_type,   val_key_timestamp, val_key_window_id, val_key_state,
+        val_key_repeat, val_key_padding2,  val_key_padding3,  val_key_keysym};
+    val_key = enif_make_new_map(env);
+    enif_make_map_from_arrays(env, sdl_keyboard_event_keys, val_key_values,
+                              LEN(val_key_values), &val_key);
+  }
+  ERL_NIF_TERM val_edit = atom_nil;
+  ERL_NIF_TERM val_edit_ext = atom_nil;
+  ERL_NIF_TERM val_text = atom_nil;
+  ERL_NIF_TERM val_motion = atom_nil;
+  ERL_NIF_TERM val_button = atom_nil;
+  ERL_NIF_TERM val_wheel = atom_nil;
+  ERL_NIF_TERM val_jaxis = atom_nil;
+  ERL_NIF_TERM val_jball = atom_nil;
+  ERL_NIF_TERM val_jhat = atom_nil;
+  ERL_NIF_TERM val_jbutton = atom_nil;
+  ERL_NIF_TERM val_jdevice = atom_nil;
+  ERL_NIF_TERM val_jbattery = atom_nil;
+  ERL_NIF_TERM val_caxis = atom_nil;
+  ERL_NIF_TERM val_cbutton = atom_nil;
+  ERL_NIF_TERM val_cdevice = atom_nil;
+  ERL_NIF_TERM val_ctouchpad = atom_nil;
+  ERL_NIF_TERM val_csensor = atom_nil;
+  ERL_NIF_TERM val_adevice = atom_nil;
+  ERL_NIF_TERM val_sensor = atom_nil;
+  ERL_NIF_TERM val_quit = atom_nil;
+  if (event->type == SDL_QUIT) {
+    ERL_NIF_TERM val_quit_type = enif_make_uint(env, event->quit.type);
+    ERL_NIF_TERM val_quit_timestamp =
+        enif_make_uint(env, event->quit.timestamp);
+    ERL_NIF_TERM val_quit_keys[] = {atom_type, atom_timestamp};
+    ERL_NIF_TERM val_quit_values[] = {val_quit_type, val_quit_timestamp};
+    val_quit = enif_make_new_map(env);
+    enif_make_map_from_arrays(env, val_quit_keys, val_quit_values,
+                              LEN(val_quit_values), &val_quit);
+  }
+  ERL_NIF_TERM val_user = atom_nil;
+  ERL_NIF_TERM val_syswm = atom_nil;
+  ERL_NIF_TERM val_tfinger = atom_nil;
+  ERL_NIF_TERM val_mgesture = atom_nil;
+  ERL_NIF_TERM val_dgesture = atom_nil;
+  ERL_NIF_TERM val_drop = atom_nil;
+  ERL_NIF_TERM values[] = {
+      val_type,      val_common,   val_display, val_window,   val_key,
+      val_edit,      val_edit_ext, val_text,    val_motion,   val_button,
+      val_wheel,     val_jaxis,    val_jball,   val_jhat,     val_jbutton,
+      val_jdevice,   val_jbattery, val_caxis,   val_cbutton,  val_cdevice,
+      val_ctouchpad, val_csensor,  val_adevice, val_sensor,   val_quit,
+      val_user,      val_syswm,    val_tfinger, val_mgesture, val_dgesture,
+      val_drop};
+  ERL_NIF_TERM retval = enif_make_new_map(env);
+  enif_make_map_from_arrays(env, sdl_event_keys, values, LEN(values), &retval);
 
   return retval;
 }
@@ -248,6 +380,48 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
   atom_g = enif_make_atom(env, "g");
   atom_b = enif_make_atom(env, "b");
   atom_a = enif_make_atom(env, "a");
+  atom_type = enif_make_atom(env, "type");
+  atom_common = enif_make_atom(env, "common");
+  atom_display = enif_make_atom(env, "display");
+  atom_window = enif_make_atom(env, "window");
+  atom_key = enif_make_atom(env, "key");
+  atom_edit = enif_make_atom(env, "edit");
+  atom_edit_ext = enif_make_atom(env, "edit_ext");
+  atom_text = enif_make_atom(env, "text");
+  atom_motion = enif_make_atom(env, "motion");
+  atom_button = enif_make_atom(env, "button");
+  atom_wheel = enif_make_atom(env, "wheel");
+  atom_jaxis = enif_make_atom(env, "jaxis");
+  atom_jball = enif_make_atom(env, "jball");
+  atom_jhat = enif_make_atom(env, "jhat");
+  atom_jbutton = enif_make_atom(env, "jbutton");
+  atom_jdevice = enif_make_atom(env, "jdevice");
+  atom_jbattery = enif_make_atom(env, "jbattery");
+  atom_caxis = enif_make_atom(env, "caxis");
+  atom_cbutton = enif_make_atom(env, "cbutton");
+  atom_cdevice = enif_make_atom(env, "cdevice");
+  atom_ctouchpad = enif_make_atom(env, "ctouchpad");
+  atom_csensor = enif_make_atom(env, "csensor");
+  atom_adevice = enif_make_atom(env, "adevice");
+  atom_sensor = enif_make_atom(env, "sensor");
+  atom_quit = enif_make_atom(env, "quit");
+  atom_user = enif_make_atom(env, "user");
+  atom_syswm = enif_make_atom(env, "syswm");
+  atom_tfinger = enif_make_atom(env, "tfinger");
+  atom_mgesture = enif_make_atom(env, "mgesture");
+  atom_dgesture = enif_make_atom(env, "dgesture");
+  atom_drop = enif_make_atom(env, "drop");
+  atom_timestamp = enif_make_atom(env, "timestamp");
+  atom_window_id = enif_make_atom(env, "window_id");
+  atom_state = enif_make_atom(env, "state");
+  atom_repeat = enif_make_atom(env, "repeat");
+  atom_padding2 = enif_make_atom(env, "padding2");
+  atom_padding3 = enif_make_atom(env, "padding3");
+  atom_keysym = enif_make_atom(env, "keysym");
+  atom_scancode = enif_make_atom(env, "scancode");
+  atom_sym = enif_make_atom(env, "sym");
+  atom_mod = enif_make_atom(env, "mod");
+  atom_unused = enif_make_atom(env, "unused");
 
   sdl_surface_keys[0] = atom_flags;
   sdl_surface_keys[1] = atom_format;
@@ -292,11 +466,50 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
   sdl_palette_keys[2] = atom_version;
   sdl_palette_keys[3] = atom_refcount;
   sdl_palette_keys[4] = atom_ref;
-  sdl_color_keys[0] = atom_r;
-  sdl_color_keys[1] = atom_g;
-  sdl_color_keys[2] = atom_b;
-  sdl_color_keys[3] = atom_a;
-  sdl_color_keys[4] = atom_ref;
+  sdl_event_keys[0] = atom_type;
+  sdl_event_keys[1] = atom_common;
+  sdl_event_keys[2] = atom_display;
+  sdl_event_keys[3] = atom_window;
+  sdl_event_keys[4] = atom_key;
+  sdl_event_keys[5] = atom_edit;
+  sdl_event_keys[6] = atom_edit_ext;
+  sdl_event_keys[7] = atom_text;
+  sdl_event_keys[8] = atom_motion;
+  sdl_event_keys[9] = atom_button;
+  sdl_event_keys[10] = atom_wheel;
+  sdl_event_keys[11] = atom_jaxis;
+  sdl_event_keys[12] = atom_jball;
+  sdl_event_keys[13] = atom_jhat;
+  sdl_event_keys[14] = atom_jbutton;
+  sdl_event_keys[15] = atom_jdevice;
+  sdl_event_keys[16] = atom_jbattery;
+  sdl_event_keys[17] = atom_caxis;
+  sdl_event_keys[18] = atom_cbutton;
+  sdl_event_keys[19] = atom_cdevice;
+  sdl_event_keys[20] = atom_ctouchpad;
+  sdl_event_keys[21] = atom_csensor;
+  sdl_event_keys[22] = atom_adevice;
+  sdl_event_keys[23] = atom_sensor;
+  sdl_event_keys[24] = atom_quit;
+  sdl_event_keys[25] = atom_user;
+  sdl_event_keys[26] = atom_syswm;
+  sdl_event_keys[27] = atom_tfinger;
+  sdl_event_keys[28] = atom_mgesture;
+  sdl_event_keys[29] = atom_dgesture;
+  sdl_event_keys[30] = atom_drop;
+  sdl_keyboard_event_keys[0] = atom_type;
+  sdl_keyboard_event_keys[1] = atom_timestamp;
+  sdl_keyboard_event_keys[2] = atom_window_id;
+  sdl_keyboard_event_keys[3] = atom_state;
+  sdl_keyboard_event_keys[4] = atom_repeat;
+  sdl_keyboard_event_keys[5] = atom_padding2;
+  sdl_keyboard_event_keys[6] = atom_padding3;
+  sdl_keyboard_event_keys[7] = atom_keysym;
+
+  event_t = enif_open_resource_type(env, "SDL", "Event", NULL,
+                                    ERL_NIF_RT_CREATE, NULL);
+  event = enif_alloc_resource(event_t, sizeof(SDL_Event));
+
   return 0;
 }
 
@@ -945,6 +1158,19 @@ static ERL_NIF_TERM sdl_get_window_surface_nif(ErlNifEnv *env, int argc,
   return enif_make_tuple2(env, atom_ok, sdl_surface_map(env, ref));
 }
 
+static ERL_NIF_TERM sdl_destroy_window_nif(ErlNifEnv *env, int argc,
+                                               const ERL_NIF_TERM argv[]) {
+  SDL_Window *window;
+
+  if (!enif_get_uint64(env, argv[0], &window)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_DestroyWindow(window);
+
+  return atom_ok;
+}
+
 static ERL_NIF_TERM sdl_create_renderer_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
   SDL_Window *window;
@@ -1090,6 +1316,44 @@ static ERL_NIF_TERM sdl_render_present_nif(ErlNifEnv *env, int argc,
   return atom_ok;
 }
 
+static ERL_NIF_TERM sdl_poll_event_nif(ErlNifEnv *env, int argc,
+                                       const ERL_NIF_TERM argv[]) {
+  int retval = SDL_PollEvent(event);
+
+  if (retval == 1) {
+    return sdl_event_map(env);
+    /* return enif_make_uint(env, event->type); */
+  }
+
+  return atom_nil;
+}
+
+static ERL_NIF_TERM sdl_destroy_texture_nif(ErlNifEnv *env, int argc,
+                                           const ERL_NIF_TERM argv[]) {
+  SDL_Texture *texture;
+
+  if (!enif_get_uint64(env, argv[0], &texture)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_DestroyTexture(texture);
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_destroy_renderer_nif(ErlNifEnv *env, int argc,
+                                           const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_DestroyRenderer(renderer);
+
+  return atom_ok;
+}
+
 static ErlNifFunc funcs[] = {
     {"sdl_init_nif", 1, sdl_init_nif},
     {"sdl_init_sub_system_nif", 1, sdl_init_sub_system_nif},
@@ -1132,6 +1396,7 @@ static ErlNifFunc funcs[] = {
     {"sdl_video_init_nif", 1, sdl_video_init_nif},
     {"sdl_create_window_nif", 6, sdl_create_window_nif},
     {"sdl_get_window_surface_nif", 1, sdl_get_window_surface_nif},
+    {"sdl_destroy_window_nif", 1, sdl_destroy_window_nif},
     // SDL_render.h section
     {"sdl_create_renderer_nif", 3, sdl_create_renderer_nif},
     {"sdl_create_texture_from_surface_nif", 2,
@@ -1144,6 +1409,9 @@ static ErlNifFunc funcs[] = {
     {"sdl_render_clear_nif", 1, sdl_render_clear_nif},
     {"sdl_render_copy_nif", 4, sdl_render_copy_nif},
     {"sdl_render_present_nif", 1, sdl_render_present_nif},
+    {"sdl_poll_event_nif", 0, sdl_poll_event_nif}, // takes 0 arg instead of 1
+    {"sdl_destroy_texture_nif", 1, sdl_destroy_texture_nif},
+    {"sdl_destroy_renderer_nif", 1, sdl_destroy_renderer_nif},
 };
 
 ERL_NIF_INIT(Elixir.Sdl, funcs, load, NULL, NULL, NULL)

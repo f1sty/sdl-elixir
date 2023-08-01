@@ -10,7 +10,7 @@ defmodule Sdl do
   import Bitwise
   import Sdl.Helpers
 
-  alias Sdl.{Surface, Palette, RWops, Renderer, Texture, Window}
+  alias Sdl.{Surface, Palette, RWops, Renderer, Texture, Window, Event}
 
   @sdl_windowpos_undefined 0x1FFF0000
   @sdl_windowpos_centered 0x2FFF0000
@@ -383,6 +383,7 @@ defmodule Sdl do
   def sdl_video_init_nif(_driver_name), do: nif_not_loaded!()
   def sdl_create_window_nif(_title, _x, _y, _w, _h, _flags), do: nif_not_loaded!()
   def sdl_get_window_surface_nif(_window), do: nif_not_loaded!()
+  def sdl_destroy_window_nif(_window), do: nif_not_loaded!()
 
   def sdl_get_video_driver(index), do: sdl_get_video_driver_nif(index) |> to_string()
   def sdl_video_init(driver_name), do: driver_name |> to_charlist() |> sdl_video_init_nif()
@@ -402,6 +403,10 @@ defmodule Sdl do
     with {:ok, surface} <- sdl_get_window_surface_nif(ref) do
       Surface.new(surface)
     end
+  end
+
+  def sdl_destroy_window(%Window{ref: ref}) do
+    sdl_destroy_window_nif(ref)
   end
 
   # `SDL2/SDL_render.h` section
@@ -436,6 +441,8 @@ defmodule Sdl do
   def sdl_render_clear_nif(_renderer), do: nif_not_loaded!()
   def sdl_render_copy_nif(_renderer, _texture, _srcrect, _dstrect), do: nif_not_loaded!()
   def sdl_render_present_nif(_renderer), do: nif_not_loaded!()
+  def sdl_destroy_texture_nif(_texture), do: nif_not_loaded!()
+  def sdl_destroy_renderer_nif(_renderer), do: nif_not_loaded!()
 
   def sdl_query_texture(%Texture{ref: ref}) do
     sdl_query_texture_nif(ref)
@@ -458,5 +465,20 @@ defmodule Sdl do
 
   def sdl_render_present(%Renderer{ref: ref}) do
     sdl_render_present_nif(ref)
+  end
+
+  def sdl_destroy_texture(%Texture{ref: ref}) do
+    sdl_destroy_texture_nif(ref)
+  end
+
+  def sdl_destroy_renderer(%Renderer{ref: ref}) do
+    sdl_destroy_renderer_nif(ref)
+  end
+
+  # `SDL2/SDL_events.h` section
+  def sdl_poll_event_nif(), do: nif_not_loaded!()
+
+  def sdl_poll_event() do
+    sdl_poll_event_nif() |> Event.new()
   end
 end

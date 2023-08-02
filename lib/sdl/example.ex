@@ -31,7 +31,6 @@ defmodule Sdl.Example do
     sdl_query_texture(texture)
     sdl_render_clear(renderer)
     sdl_render_copy(renderer, texture, nil, nil)
-    sdl_render_present(renderer)
 
     pause = from_fps(60)
 
@@ -49,10 +48,12 @@ defmodule Sdl.Example do
 
       %Event{type: :sdl_keydown, key: key_event} ->
         IO.inspect(key_event, label: :key_event)
+        sdl_render_present(renderer)
         Process.sleep(pause)
         loop(pause, renderer, texture, window)
 
       _event ->
+        sdl_render_present(renderer)
         Process.sleep(pause)
         loop(pause, renderer, texture, window)
     end

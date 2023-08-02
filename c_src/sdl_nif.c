@@ -3,9 +3,11 @@
 #include <SDL2/SDL_error.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_log.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_surface.h>
+#include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
 #include <erl_nif.h>
 #include <stdint.h>
@@ -1159,7 +1161,7 @@ static ERL_NIF_TERM sdl_get_window_surface_nif(ErlNifEnv *env, int argc,
 }
 
 static ERL_NIF_TERM sdl_destroy_window_nif(ErlNifEnv *env, int argc,
-                                               const ERL_NIF_TERM argv[]) {
+                                           const ERL_NIF_TERM argv[]) {
   SDL_Window *window;
 
   if (!enif_get_uint64(env, argv[0], &window)) {
@@ -1322,14 +1324,13 @@ static ERL_NIF_TERM sdl_poll_event_nif(ErlNifEnv *env, int argc,
 
   if (retval == 1) {
     return sdl_event_map(env);
-    /* return enif_make_uint(env, event->type); */
   }
 
   return atom_nil;
 }
 
 static ERL_NIF_TERM sdl_destroy_texture_nif(ErlNifEnv *env, int argc,
-                                           const ERL_NIF_TERM argv[]) {
+                                            const ERL_NIF_TERM argv[]) {
   SDL_Texture *texture;
 
   if (!enif_get_uint64(env, argv[0], &texture)) {
@@ -1342,7 +1343,7 @@ static ERL_NIF_TERM sdl_destroy_texture_nif(ErlNifEnv *env, int argc,
 }
 
 static ERL_NIF_TERM sdl_destroy_renderer_nif(ErlNifEnv *env, int argc,
-                                           const ERL_NIF_TERM argv[]) {
+                                             const ERL_NIF_TERM argv[]) {
   SDL_Renderer *renderer;
 
   if (!enif_get_uint64(env, argv[0], &renderer)) {
@@ -1350,6 +1351,46 @@ static ERL_NIF_TERM sdl_destroy_renderer_nif(ErlNifEnv *env, int argc,
   }
 
   SDL_DestroyRenderer(renderer);
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_set_render_draw_color_nif(ErlNifEnv *env, int argc,
+                                                  const ERL_NIF_TERM argv[]) {
+  SDL_Renderer *renderer;
+  unsigned int r, g, b, a;
+
+  if (!enif_get_uint64(env, argv[0], &renderer)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[1], &r)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[2], &g)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[3], &b)) {
+    return enif_make_badarg(env);
+  }
+  if (!enif_get_uint(env, argv[4], &a)) {
+    return enif_make_badarg(env);
+  }
+
+  if (SDL_SetRenderDrawColor(renderer, r, g, b, a) < 0)
+    return SDL_ERROR_TUPLE;
+
+  return atom_ok;
+}
+
+static ERL_NIF_TERM sdl_delay_nif(ErlNifEnv *env, int argc,
+                                  const ERL_NIF_TERM argv[]) {
+  uint32_t delay;
+
+  if (!enif_get_uint(env, argv[0], &delay)) {
+    return enif_make_badarg(env);
+  }
+
+  SDL_Delay(delay);
 
   return atom_ok;
 }
@@ -1412,6 +1453,8 @@ static ErlNifFunc funcs[] = {
     {"sdl_poll_event_nif", 0, sdl_poll_event_nif}, // takes 0 arg instead of 1
     {"sdl_destroy_texture_nif", 1, sdl_destroy_texture_nif},
     {"sdl_destroy_renderer_nif", 1, sdl_destroy_renderer_nif},
+    {"sdl_set_render_draw_color_nif", 5, sdl_set_render_draw_color_nif},
+    {"sdl_delay_nif", 1, sdl_delay_nif},
 };
 
 ERL_NIF_INIT(Elixir.Sdl, funcs, load, NULL, NULL, NULL)

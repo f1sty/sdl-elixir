@@ -443,6 +443,8 @@ defmodule Sdl do
   def sdl_render_present_nif(_renderer), do: nif_not_loaded!()
   def sdl_destroy_texture_nif(_texture), do: nif_not_loaded!()
   def sdl_destroy_renderer_nif(_renderer), do: nif_not_loaded!()
+  def sdl_set_render_draw_color_nif(_renderer, _r, _g, _b, _a), do: nif_not_loaded!()
+  def sdl_delay_nif(_delay), do: nif_not_loaded!()
 
   def sdl_query_texture(%Texture{ref: ref}) do
     sdl_query_texture_nif(ref)
@@ -475,10 +477,16 @@ defmodule Sdl do
     sdl_destroy_renderer_nif(ref)
   end
 
+  def sdl_set_render_draw_color(%Renderer{ref: ref}, r, g, b, a) do
+    sdl_set_render_draw_color_nif(ref, r, g, b, a)
+  end
+
   # `SDL2/SDL_events.h` section
   def sdl_poll_event_nif(), do: nif_not_loaded!()
 
   def sdl_poll_event() do
     sdl_poll_event_nif() |> Event.new()
   end
+
+  def sdl_delay(delay), do: sdl_delay_nif(delay)
 end

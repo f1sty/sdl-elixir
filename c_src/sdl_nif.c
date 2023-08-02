@@ -122,7 +122,6 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
   ERL_NIF_TERM val_format = atom_nil;
   ERL_NIF_TERM val_format_palette = atom_nil;
   ERL_NIF_TERM val_format_palette_colors = atom_nil;
-  ERL_NIF_TERM val_clip_rect = atom_nil;
   ERL_NIF_TERM val_flags = enif_make_uint(env, ref->flags);
   if (ref->format != NULL) {
     ERL_NIF_TERM val_format_format = enif_make_uint(env, ref->format->format);
@@ -216,20 +215,18 @@ static ERL_NIF_TERM sdl_surface_map(ErlNifEnv *env, SDL_Surface *ref) {
   ERL_NIF_TERM val_locked = enif_make_int(env, ref->locked); // ???
   ERL_NIF_TERM val_list_blitmap =
       enif_make_uint64(env, (uint64_t)ref->list_blitmap); // ptr
-  if (&ref->clip_rect != NULL) {
-    ERL_NIF_TERM val_clip_rect_x = enif_make_int(env, ref->clip_rect.x);
-    ERL_NIF_TERM val_clip_rect_y = enif_make_int(env, ref->clip_rect.y);
-    ERL_NIF_TERM val_clip_rect_w = enif_make_int(env, ref->clip_rect.w);
-    ERL_NIF_TERM val_clip_rect_h = enif_make_int(env, ref->clip_rect.h);
-    ERL_NIF_TERM val_clip_rect_ref =
-        enif_make_uint64(env, (uint64_t)&ref->clip_rect); // ptr
-    ERL_NIF_TERM val_clip_rect_values[] = {val_clip_rect_x, val_clip_rect_y,
-                                           val_clip_rect_w, val_clip_rect_h,
-                                           val_clip_rect_ref};
-    val_clip_rect = enif_make_new_map(env);
-    enif_make_map_from_arrays(env, sdl_rect_keys, val_clip_rect_values,
-                              LEN(val_clip_rect_values), &val_clip_rect);
-  }
+  ERL_NIF_TERM val_clip_rect_x = enif_make_int(env, ref->clip_rect.x);
+  ERL_NIF_TERM val_clip_rect_y = enif_make_int(env, ref->clip_rect.y);
+  ERL_NIF_TERM val_clip_rect_w = enif_make_int(env, ref->clip_rect.w);
+  ERL_NIF_TERM val_clip_rect_h = enif_make_int(env, ref->clip_rect.h);
+  ERL_NIF_TERM val_clip_rect_ref =
+      enif_make_uint64(env, (uint64_t)&ref->clip_rect); // ptr
+  ERL_NIF_TERM val_clip_rect_values[] = {val_clip_rect_x, val_clip_rect_y,
+                                         val_clip_rect_w, val_clip_rect_h,
+                                         val_clip_rect_ref};
+  ERL_NIF_TERM val_clip_rect = enif_make_new_map(env);
+  enif_make_map_from_arrays(env, sdl_rect_keys, val_clip_rect_values,
+                            LEN(val_clip_rect_values), &val_clip_rect);
   ERL_NIF_TERM val_map = enif_make_uint64(env, (uint64_t)ref->map); // ptr
   ERL_NIF_TERM val_refcount = enif_make_int(env, ref->refcount);
   ERL_NIF_TERM val_ref = enif_make_uint64(env, (uint64_t)ref);
@@ -650,7 +647,7 @@ static ERL_NIF_TERM sdl_create_rgb_surface_from_nif(ErlNifEnv *env, int argc,
   int width, height, depth, pitch;
   void *pixels = NULL;
 
-  if (!enif_get_uint64(env, argv[0], &pixels)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&pixels)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &width)) {
@@ -694,7 +691,7 @@ sdl_create_rgb_surface_with_format_from_nif(ErlNifEnv *env, int argc,
   int width, height, depth, pitch;
   void *pixels = NULL;
 
-  if (!enif_get_uint64(env, argv[0], &pixels)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&pixels)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &width)) {
@@ -725,7 +722,7 @@ sdl_create_rgb_surface_with_format_from_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM sdl_free_surface_nif(ErlNifEnv *env, int argc,
                                          const ERL_NIF_TERM argv[]) {
   SDL_Surface *ref;
-  if (!enif_get_uint64(env, argv[0], &ref)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&ref)) {
     return enif_make_badarg(env);
   }
 
@@ -738,10 +735,10 @@ static ERL_NIF_TERM sdl_set_surface_palette_nif(ErlNifEnv *env, int argc,
                                                 const ERL_NIF_TERM argv[]) {
   SDL_Surface *surface_ref;
   SDL_Palette *palette_ref;
-  if (!enif_get_uint64(env, argv[0], &surface_ref)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface_ref)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &palette_ref)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&palette_ref)) {
     return enif_make_badarg(env);
   }
 
@@ -754,7 +751,7 @@ static ERL_NIF_TERM sdl_set_surface_palette_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM sdl_lock_surface_nif(ErlNifEnv *env, int argc,
                                          const ERL_NIF_TERM argv[]) {
   SDL_Surface *ref;
-  if (!enif_get_uint64(env, argv[0], &ref)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&ref)) {
     return enif_make_badarg(env);
   }
 
@@ -767,7 +764,7 @@ static ERL_NIF_TERM sdl_lock_surface_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM sdl_unlock_surface_nif(ErlNifEnv *env, int argc,
                                            const ERL_NIF_TERM argv[]) {
   SDL_Surface *ref;
-  if (!enif_get_uint64(env, argv[0], &ref)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&ref)) {
     return enif_make_badarg(env);
   }
 
@@ -781,7 +778,7 @@ static ERL_NIF_TERM sdl_load_bmp_rw_nif(ErlNifEnv *env, int argc,
   SDL_RWops *src;
   int freesrc;
 
-  if (!enif_get_uint64(env, argv[0], &src)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&src)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &freesrc)) {
@@ -818,10 +815,10 @@ static ERL_NIF_TERM sdl_save_bmp_rw_nif(ErlNifEnv *env, int argc,
   SDL_RWops *dst;
   int freesrc;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &dst)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&dst)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[2], &freesrc)) {
@@ -839,7 +836,7 @@ static ERL_NIF_TERM sdl_save_bmp_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   char file[256];
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_string(env, argv[0], file, 256, ERL_NIF_UTF8)) {
@@ -857,7 +854,7 @@ static ERL_NIF_TERM sdl_set_surface_rle_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   int flag;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &flag)) {
@@ -874,7 +871,7 @@ static ERL_NIF_TERM sdl_has_surface_rle_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
   SDL_Surface *surface;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -891,7 +888,7 @@ static ERL_NIF_TERM sdl_set_color_key_nif(ErlNifEnv *env, int argc,
   int flag;
   uint32_t key;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &flag)) {
@@ -911,7 +908,7 @@ static ERL_NIF_TERM sdl_has_color_key_nif(ErlNifEnv *env, int argc,
                                           const ERL_NIF_TERM argv[]) {
   SDL_Surface *surface;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -927,7 +924,7 @@ static ERL_NIF_TERM sdl_get_color_key_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   uint32_t key;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -941,9 +938,9 @@ static ERL_NIF_TERM sdl_get_color_key_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM sdl_set_surface_color_mod_nif(ErlNifEnv *env, int argc,
                                                   const ERL_NIF_TERM argv[]) {
   SDL_Surface *surface;
-  uint8_t r, g, b;
+  uint32_t r, g, b;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_uint(env, argv[1], &r)) {
@@ -967,7 +964,7 @@ static ERL_NIF_TERM sdl_get_surface_color_mod_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   uint8_t r, g, b;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -985,9 +982,9 @@ static ERL_NIF_TERM sdl_get_surface_color_mod_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM sdl_set_surface_alpha_mod_nif(ErlNifEnv *env, int argc,
                                                   const ERL_NIF_TERM argv[]) {
   SDL_Surface *surface;
-  uint8_t alpha;
+  uint32_t alpha;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_uint(env, argv[1], &alpha)) {
@@ -1005,7 +1002,7 @@ static ERL_NIF_TERM sdl_get_surface_alpha_mod_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   uint8_t alpha;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -1022,10 +1019,10 @@ static ERL_NIF_TERM sdl_set_surface_blend_mode_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   SDL_BlendMode blend_mode;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &blend_mode)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&blend_mode)) {
     return enif_make_badarg(env);
   }
 
@@ -1040,11 +1037,11 @@ static ERL_NIF_TERM sdl_get_surface_blend_mode_nif(ErlNifEnv *env, int argc,
   SDL_Surface *surface;
   SDL_BlendMode blend_mode;
 
-  if (!enif_get_uint64(env, argv[0], &surface)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
-  if (SDL_GetSurfaceAlphaMod(surface, &blend_mode) < 0)
+  if (SDL_GetSurfaceBlendMode(surface, &blend_mode) < 0)
     return SDL_ERROR_TUPLE;
 
   ERL_NIF_TERM blend_mode_term = enif_make_uint64(env, blend_mode);
@@ -1057,16 +1054,16 @@ static ERL_NIF_TERM sdl_upper_blit_nif(ErlNifEnv *env, int argc,
   SDL_Surface *src, *dst;
   SDL_Rect *srcrect, *dstrect;
 
-  if (!enif_get_uint64(env, argv[0], &src)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&src)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &srcrect)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&srcrect)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[2], &dst)) {
+  if (!enif_get_uint64(env, argv[2], (uint64_t *)&dst)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[3], &dstrect)) {
+  if (!enif_get_uint64(env, argv[3], (uint64_t *)&dstrect)) {
     return enif_make_badarg(env);
   }
 
@@ -1085,7 +1082,7 @@ static ERL_NIF_TERM sdl_get_video_driver_nif(ErlNifEnv *env, int argc,
     return enif_make_badarg(env);
   }
 
-  char *retval = SDL_GetVideoDriver(index);
+  const char *retval = SDL_GetVideoDriver(index);
 
   return enif_make_string(env, retval, ERL_NIF_UTF8);
 }
@@ -1148,7 +1145,7 @@ static ERL_NIF_TERM sdl_get_window_surface_nif(ErlNifEnv *env, int argc,
                                                const ERL_NIF_TERM argv[]) {
   SDL_Window *window;
 
-  if (!enif_get_uint64(env, argv[0], &window)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&window)) {
     return enif_make_badarg(env);
   }
 
@@ -1164,7 +1161,7 @@ static ERL_NIF_TERM sdl_destroy_window_nif(ErlNifEnv *env, int argc,
                                            const ERL_NIF_TERM argv[]) {
   SDL_Window *window;
 
-  if (!enif_get_uint64(env, argv[0], &window)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&window)) {
     return enif_make_badarg(env);
   }
 
@@ -1179,7 +1176,7 @@ static ERL_NIF_TERM sdl_create_renderer_nif(ErlNifEnv *env, int argc,
   int index;
   uint32_t flags;
 
-  if (!enif_get_uint64(env, argv[0], &window)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&window)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_int(env, argv[1], &index)) {
@@ -1208,10 +1205,10 @@ sdl_create_texture_from_surface_nif(ErlNifEnv *env, int argc,
   SDL_Renderer *renderer;
   SDL_Surface *surface;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &surface)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&surface)) {
     return enif_make_badarg(env);
   }
 
@@ -1250,7 +1247,7 @@ static ERL_NIF_TERM sdl_query_texture_nif(ErlNifEnv *env, int argc,
   int w, h, access;
   uint32_t format;
 
-  if (!enif_get_uint64(env, argv[0], &texture)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&texture)) {
     return enif_make_badarg(env);
   }
 
@@ -1269,7 +1266,7 @@ static ERL_NIF_TERM sdl_render_clear_nif(ErlNifEnv *env, int argc,
                                          const ERL_NIF_TERM argv[]) {
   SDL_Renderer *renderer;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
 
@@ -1286,16 +1283,16 @@ static ERL_NIF_TERM sdl_render_copy_nif(ErlNifEnv *env, int argc,
   SDL_Rect *srcrect;
   SDL_Rect *dstrect;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[1], &texture)) {
+  if (!enif_get_uint64(env, argv[1], (uint64_t *)&texture)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[2], &srcrect)) {
+  if (!enif_get_uint64(env, argv[2], (uint64_t *)&srcrect)) {
     return enif_make_badarg(env);
   }
-  if (!enif_get_uint64(env, argv[3], &dstrect)) {
+  if (!enif_get_uint64(env, argv[3], (uint64_t *)&dstrect)) {
     return enif_make_badarg(env);
   }
 
@@ -1309,7 +1306,7 @@ static ERL_NIF_TERM sdl_render_present_nif(ErlNifEnv *env, int argc,
                                            const ERL_NIF_TERM argv[]) {
   SDL_Renderer *renderer;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
 
@@ -1333,7 +1330,7 @@ static ERL_NIF_TERM sdl_destroy_texture_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
   SDL_Texture *texture;
 
-  if (!enif_get_uint64(env, argv[0], &texture)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&texture)) {
     return enif_make_badarg(env);
   }
 
@@ -1346,7 +1343,7 @@ static ERL_NIF_TERM sdl_destroy_renderer_nif(ErlNifEnv *env, int argc,
                                              const ERL_NIF_TERM argv[]) {
   SDL_Renderer *renderer;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
 
@@ -1360,7 +1357,7 @@ static ERL_NIF_TERM sdl_set_render_draw_color_nif(ErlNifEnv *env, int argc,
   SDL_Renderer *renderer;
   unsigned int r, g, b, a;
 
-  if (!enif_get_uint64(env, argv[0], &renderer)) {
+  if (!enif_get_uint64(env, argv[0], (uint64_t *)&renderer)) {
     return enif_make_badarg(env);
   }
   if (!enif_get_uint(env, argv[1], &r)) {
